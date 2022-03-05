@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Delbert&#39;s Blog</title>
+  <icon>https://azhuyang.top/icon.png</icon>
+  <subtitle>阿猪羊随记</subtitle>
+  <link href="https://azhuyang.top/atom.xml" rel="self"/>
+  
+  <link href="https://azhuyang.top/"/>
+  <updated>2022-03-05T08:53:03.706Z</updated>
+  <id>https://azhuyang.top/</id>
+  
+  <author>
+    <name>阿猪羊</name>
+    
+  </author>
+  
+  <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>复旦CTJ</title>
+    <link href="https://azhuyang.top/2022/03/05/%E5%A4%8D%E6%97%A6CTJ/"/>
+    <id>https://azhuyang.top/2022/03/05/%E5%A4%8D%E6%97%A6CTJ/</id>
+    <published>2022-03-05T07:25:15.000Z</published>
+    <updated>2022-03-05T08:53:03.706Z</updated>
+    
+    
+    <summary type="html">&lt;h1&gt;记录ctj三战复旦&lt;strong&gt;403&lt;/strong&gt;&lt;/h1&gt;
+&lt;h2 id=&quot;金专妥妥有书读&quot;&gt;金专妥妥有书读&lt;/h2&gt;
+&lt;p&gt;  恭喜ctj三战终上400分。&lt;/p&gt;</summary>
+    
+    
+    
+    <category term="好友" scheme="https://azhuyang.top/categories/%E5%A5%BD%E5%8F%8B/"/>
+    
+    
+    <category term="ctj" scheme="https://azhuyang.top/tags/ctj/"/>
+    
+  </entry>
+  
+</feed>
