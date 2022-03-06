@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
-    <loc>https://azhuyang.top/2022/03/05/%E5%A4%8D%E6%97%A6CTJ/</loc>
+    <loc>https://azhuyang.top/404/index.html</loc>
     
     <lastmod>2022-03-06</lastmod>
     
@@ -13,7 +13,7 @@
   <url>
     <loc>https://azhuyang.top/categories/index.html</loc>
     
-    <lastmod>2022-03-05</lastmod>
+    <lastmod>2022-03-06</lastmod>
     
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -22,7 +22,16 @@
   <url>
     <loc>https://azhuyang.top/tags/index.html</loc>
     
-    <lastmod>2022-03-05</lastmod>
+    <lastmod>2022-03-06</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://azhuyang.top/2022/03/05/%E5%A4%8D%E6%97%A6CTJ/</loc>
+    
+    <lastmod>2022-03-06</lastmod>
     
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
