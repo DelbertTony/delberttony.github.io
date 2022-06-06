@@ -2,6 +2,15 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://azhuyang.top/2022/06/05/RHOSP13%E5%AE%9E%E9%AA%8C%E6%89%8B%E5%86%8C/</loc>
+    
+    <lastmod>2022-06-06</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
     <loc>https://azhuyang.top/2022/03/05/%E5%A4%8D%E6%97%A6CTJ/</loc>
     
     <lastmod>2022-05-05</lastmod>
@@ -40,15 +49,29 @@
 
   <url>
     <loc>https://azhuyang.top/</loc>
-    <lastmod>2022-05-05</lastmod>
+    <lastmod>2022-06-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
 
   
   <url>
+    <loc>https://azhuyang.top/tags/RHCA/</loc>
+    <lastmod>2022-06-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://azhuyang.top/tags/openstack/</loc>
+    <lastmod>2022-06-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
     <loc>https://azhuyang.top/tags/CTJ/</loc>
-    <lastmod>2022-05-05</lastmod>
+    <lastmod>2022-06-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
@@ -56,8 +79,15 @@
 
   
   <url>
+    <loc>https://azhuyang.top/categories/%E5%AD%A6%E4%B9%A0/</loc>
+    <lastmod>2022-06-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
     <loc>https://azhuyang.top/categories/%E5%A5%BD%E5%8F%8B/</loc>
-    <lastmod>2022-05-05</lastmod>
+    <lastmod>2022-06-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
