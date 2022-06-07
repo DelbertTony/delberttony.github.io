@@ -56,6 +56,13 @@
 
   
   <url>
+    <loc>https://azhuyang.top/tags/CTJ/</loc>
+    <lastmod>2022-06-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
     <loc>https://azhuyang.top/tags/RHCA/</loc>
     <lastmod>2022-06-07</lastmod>
     <changefreq>weekly</changefreq>
@@ -69,24 +76,17 @@
     <priority>0.2</priority>
   </url>
   
-  <url>
-    <loc>https://azhuyang.top/tags/CTJ/</loc>
-    <lastmod>2022-06-07</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
 
   
   <url>
-    <loc>https://azhuyang.top/categories/%E5%AD%A6%E4%B9%A0/</loc>
+    <loc>https://azhuyang.top/categories/%E5%A5%BD%E5%8F%8B/</loc>
     <lastmod>2022-06-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
-    <loc>https://azhuyang.top/categories/%E5%A5%BD%E5%8F%8B/</loc>
+    <loc>https://azhuyang.top/categories/%E5%AD%A6%E4%B9%A0/</loc>
     <lastmod>2022-06-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
