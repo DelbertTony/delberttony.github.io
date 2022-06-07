@@ -104,7 +104,7 @@ rabbitmqctl trace_off：禁用追踪<span aria-hidden="true" class="line-numbers
 设置用户对何种资源具有配置、写、读的权限通过正则表达式来匹配，这里的资源指的是virtual hosts中的exchanges、queues等，操作包括对资源进行配置、写、读。配置权限可创建、删除、资源并修改资源的行为，写权限可向资源发送消息，读权限从资源获取消息。
 如<span class="token string">'^(amq\.gen.*|amq\.default)$'</span>可以匹配server生成的和默认的exchange，<span class="token string">'^$'</span>不匹配任何资源。
 set_permissions <span class="token punctuation">[</span>-p <span class="token operator">&lt;</span>vhostpath<span class="token operator">></span><span class="token punctuation">]</span> <span class="token operator">&lt;</span>user<span class="token operator">></span> <span class="token operator">&lt;</span>conf<span class="token operator">></span> <span class="token operator">&lt;</span>write<span class="token operator">></span> <span class="token operator">&lt;</span>read<span class="token operator">></span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-<h3 id="第三节-控制节点的服务">第三节 控制节点的服务</h3>
+<h3 id="第二节-控制节点的服务">第二节 控制节点的服务</h3>
 <p>初始化环境</p>
 <pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">]</span>$ lab controlplane-services setup<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
 <p><strong>练习：访问mysql数据库服务</strong></p>
