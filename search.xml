@@ -371,6 +371,583 @@ Group name: editors
 <span class="token punctuation">(</span>overcloud<span class="token punctuation">)</span> <span class="token punctuation">[</span>stack@director ~<span class="token punctuation">]</span>$ openstack role <span class="token function">add</span> --group Devops --group-domain 210Demo --project Engineering --project-domain 210Demo _member_
 <span class="token punctuation">(</span>overcloud<span class="token punctuation">)</span> <span class="token punctuation">[</span>stack@director ~<span class="token punctuation">]</span>$ openstack role <span class="token function">add</span> --group Devops --group-domain 210Demo --project Production --project-domain 210Demo admin
 <span class="token punctuation">(</span>overcloud<span class="token punctuation">)</span> <span class="token punctuation">[</span>stack@director ~<span class="token punctuation">]</span>$ openstack role <span class="token function">add</span> --group Devops --group-domain 210Demo --project Production --project-domain 210Demo _member_<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span></span></code></pre>
+<h2 id="第四章-镜像管理">第四章 镜像管理</h2>
+<h3 id="第一节-比较镜像格式">第一节 比较镜像格式</h3>
+<ol>
+<li>raw</li>
+</ol>
+<p>raw格式是最简单，什么都没有，所以叫raw格式。连头文件都没有，就是一个直接给虚拟机进行读写的文件。raw不支持动态增长空间，必须一开始就指定空间大小。所以相当的耗费磁盘空间。但是对于支持稀疏文件的文件系统（如ext4）而言，这方面并不突出。ext4下默认创建的文件就是稀疏文件，所以不要做什么额外的工作。</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">du</span> -sh 文件名<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<p>用du可以查看文件的实际大小。也就是说，不管磁盘空间有多大，运行下面的指令没有任何问题：</p>
+<p>raw镜像格式是虚拟机中I/O性能最好的一种格式，大家在使用时都会和raw进行参照，性能越接近raw 的越好。但是raw没有任何其他功能。对于稀疏文件的出现，像qcow这一类的运行时分配空间的镜像就 没有任何优势了。</p>
+<ol start="2">
+<li>qcow</li>
+</ol>
+<p>qcow在cow的基础上增加了动态增加文件大小的功能，并且支持加密，压缩。qcow通过2级索引表来管理整个镜像的空间分配，其中第二级的索引用了内存cache技术，需要查找动作，这方面导致性能的损失。qcow现在基本不用，一方面其优化和功能没有qcow2好，另一方面，读写性能又没有cow和raw好。</p>
+<ol start="3">
+<li>qcow2</li>
+</ol>
+<p>qcow2是集各种技术为一体的超级镜像格式，支持内部快照，加密，压缩等一系列功能，访问性能也在不断提高。但qcow2的问题就是过于臃肿，把什么功能都集于一身。</p>
+<p><strong>镜像文件管理</strong></p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token comment">#创建镜像</span>
+<span class="token punctuation">[</span>root@compute0 ~<span class="token punctuation">]</span><span class="token comment"># qemu-img create -f qcow2 disk01.qcow2 10G </span>
+Formatting <span class="token string">'disk01.qcow2'</span>, <span class="token assign-left variable">fmt</span><span class="token operator">=</span>qcow2 <span class="token assign-left variable">size</span><span class="token operator">=</span><span class="token number">10737418240</span> <span class="token assign-left variable">cluster_size</span><span class="token operator">=</span><span class="token number">65536</span> <span class="token assign-left variable">lazy_refcounts</span><span class="token operator">=</span>off <span class="token assign-left variable">refcount_bits</span><span class="token operator">=</span><span class="token number">16</span>
+<span class="token punctuation">[</span>root@compute0 ~<span class="token punctuation">]</span><span class="token comment"># qemu-img create -f raw disk02.raw 10G</span>
+Formatting <span class="token string">'disk02.raw'</span>, <span class="token assign-left variable">fmt</span><span class="token operator">=</span>raw <span class="token assign-left variable">size</span><span class="token operator">=</span><span class="token number">10737418240</span>
+<span class="token comment">#查看镜像</span>
+<span class="token punctuation">[</span>root@compute0 ~<span class="token punctuation">]</span><span class="token comment"># qemu-img info disk01.qcow2</span>
+image: disk01.qcow2
+<span class="token function">file</span> format: qcow2
+virtual size: 10G <span class="token punctuation">(</span><span class="token number">10737418240</span> bytes<span class="token punctuation">)</span>
+disk size: 196K
+cluster_size: <span class="token number">65536</span>
+Format specific information:
+    compat: <span class="token number">1.1</span>
+    lazy refcounts: <span class="token boolean">false</span>
+    refcount bits: <span class="token number">16</span>
+    corrupt: <span class="token boolean">false</span>
+<span class="token punctuation">[</span>root@compute0 ~<span class="token punctuation">]</span><span class="token comment"># qemu-img info disk02.raw</span>
+image: disk02.raw
+<span class="token function">file</span> format: raw
+virtual size: 10G <span class="token punctuation">(</span><span class="token number">10737418240</span> bytes<span class="token punctuation">)</span>
+disk size: <span class="token number">0</span>
+<span class="token punctuation">[</span>root@compute0 ~<span class="token punctuation">]</span><span class="token comment"># ll -h</span>
+-rw-r--r--. <span class="token number">1</span> root root 193K Jun <span class="token number">26</span> <span class="token number">11</span>:11 disk01.qcow2
+-rw-r--r--. <span class="token number">1</span> root root  10G Jun <span class="token number">26</span> <span class="token number">11</span>:12 disk02.raw
+<span class="token comment">#qcow2和raw格式之间进行转换</span>
+<span class="token punctuation">[</span>root@compute0 ~<span class="token punctuation">]</span><span class="token comment"># qemu-img convert -f qcow2 -O raw disk01.qcow2 disk01.raw</span>
+<span class="token punctuation">[</span>root@compute0 ~<span class="token punctuation">]</span><span class="token comment"># ll -h</span>
+-rw-r--r--. <span class="token number">1</span> root root 193K Jun <span class="token number">26</span> <span class="token number">11</span>:11 disk01.qcow2
+-rw-r--r--. <span class="token number">1</span> root root  10G Jun <span class="token number">26</span> <span class="token number">11</span>:16 disk01.raw
+-rw-r--r--. <span class="token number">1</span> root root  10G Jun <span class="token number">26</span> <span class="token number">11</span>:12 disk02.raw<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<h3 id="第二节-修改客户机和磁盘镜像">第二节 修改客户机和磁盘镜像</h3>
+<h4 id="练习：guestfish自定义镜像">练习：guestfish自定义镜像</h4>
+<p>初始化环境</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">]</span>$ lab customization-img-customizing setup<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<p>下载镜像</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$  <span class="token function">wget</span> http://materials.example.com/osp-small.qcow2 -O ~/finance-rhel-db.qcow2<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<p>编辑镜像</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$  guestfish -i --network -a ~/finance-rhel-db.qcow2
+<span class="token comment">#选项说明: -i 自动挂载分区；--network 启用网络；-a 添加磁盘镜像</span>
+<span class="token operator">></span><span class="token operator">&lt;</span>fs<span class="token operator">></span> <span class="token builtin class-name">command</span> <span class="token string">"yum -y install httpd"</span>
+<span class="token operator">></span><span class="token operator">&lt;</span>fs<span class="token operator">></span> <span class="token builtin class-name">command</span> <span class="token string">"systemctl enable httpd"</span>
+<span class="token operator">></span><span class="token operator">&lt;</span>fs<span class="token operator">></span>  <span class="token builtin class-name">command</span> <span class="token string">"systemctl start httpd"</span>
+<span class="token operator">></span><span class="token operator">&lt;</span>fs<span class="token operator">></span> <span class="token function">touch</span> /var/www/html/index.html
+<span class="token operator">></span><span class="token operator">&lt;</span>fs<span class="token operator">></span> <span class="token function">vi</span> /var/www/html/index.html
+<span class="token operator">></span><span class="token operator">&lt;</span>fs<span class="token operator">></span> <span class="token builtin class-name">command</span> <span class="token string">"useradd test"</span>
+<span class="token operator">></span><span class="token operator">&lt;</span>fs<span class="token operator">></span> selinux-relabel /etc/selinux/targeted/contexts/files/file_contexts /
+<span class="token operator">></span><span class="token operator">&lt;</span>fs<span class="token operator">></span> <span class="token builtin class-name">exit</span>
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ <span class="token builtin class-name">source</span> developer1-finance-rc 
+<span class="token comment">#上传镜像</span>
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack image create --disk-format qcow2 --min-disk <span class="token number">10</span> --min-ram <span class="token number">2048</span> --file ~/finance-rhel-db.qcow2 finance-rhel-db<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>发放云主机</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token comment">#发送云主机</span>
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server create --flavor default --key-name example-keypair --nic net-id<span class="token operator">=</span>finance-network1 --security-group finance-db --image finance-rhel-db --wait finance-db1
+<span class="token comment">#绑定浮动ip</span>
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack floating <span class="token function">ip</span> list
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server <span class="token function">add</span> floating <span class="token function">ip</span> finance-db1 <span class="token number">172.25</span>.250.110
+<span class="token comment">#登录云主机</span>
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ <span class="token function">ssh</span> cloud-user@172.25.250.110
+Warning: Permanently added <span class="token string">'172.25.250.110'</span> <span class="token punctuation">(</span>ECDSA<span class="token punctuation">)</span> to the list of known hosts.
+<span class="token punctuation">[</span>cloud-user@finance-db1 ~<span class="token punctuation">]</span>$ 
+<span class="token comment">#在安全组规则中放心80端口</span>
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ <span class="token function">curl</span> <span class="token number">172.25</span>.250.110<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>清除环境</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">]</span>$ lab customization-img-customizing cleanup<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<h3 id="第三节-部署期间初始化实例">第三节 部署期间初始化实例</h3>
+<h4 id="练习：cloud-init自定义创建的实例">练习：cloud-init自定义创建的实例</h4>
+<p>初始化环境</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">]</span>$ lab customization-img-cloudinit setup<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<p>下载镜像</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ <span class="token function">wget</span> http://materials.example.com/osp-small.qcow2 -O ~/cloud-init<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<p>编辑镜像</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$  <span class="token builtin class-name">source</span> developer1-finance-rc
+<span class="token comment">#上传镜像</span>
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack image create --disk-format qcow2 --min-disk <span class="token number">10</span> --min-ram <span class="token number">2048</span> --file cloud-init cloud-init
+<span class="token comment">#发送云主机</span>
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ <span class="token function">vim</span> user-data
+<span class="token comment">#!/bin/bash</span>
+yum -y <span class="token function">install</span> httpd
+systemctl <span class="token builtin class-name">enable</span> httpd
+systemctl start httpd
+<span class="token builtin class-name">echo</span> hello delbert <span class="token operator">></span> /var/www/html/index.html
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server create --flavor default --key-name example-keypair --nic net-id<span class="token operator">=</span>finance-network1 --security-group default --image cloud-init --user-data ~/user-data --wait cloud-init
+<span class="token comment">#浮动ip</span>
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack floating <span class="token function">ip</span> list
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server <span class="token function">add</span> floating <span class="token function">ip</span> cloud-init <span class="token number">172.25</span>.250.110
+<span class="token comment">#登录云主机</span>
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ <span class="token function">ssh</span> cloud-user@172.25.250.110
+<span class="token comment">#在安全组规则中放行80端口</span>
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ <span class="token function">curl</span> <span class="token number">172.25</span>.250.110<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>清除环境</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">]</span>$ lab customization-img-cloudinit cleanup<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<h2 id="第五章-存储管理">第五章 存储管理</h2>
+<h3 id="第一节-实施块存储">第一节 实施块存储</h3>
+<p>查看ceph节点的osd信息</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>root@ceph0 ~<span class="token punctuation">]</span><span class="token comment"># docker ps | grep osd</span>
+e40a31cb9b3a        <span class="token number">172.25</span>.249.200:8787/rhceph/rhceph-3-rhel7:latest    <span class="token string">"/entrypoint.sh"</span>    <span class="token number">57</span> minutes ago      Up <span class="token number">57</span> minutes                           ceph-osd-ceph0-vdb
+c99645015af3        <span class="token number">172.25</span>.249.200:8787/rhceph/rhceph-3-rhel7:latest    <span class="token string">"/entrypoint.sh"</span>    <span class="token number">57</span> minutes ago      Up <span class="token number">57</span> minutes                           ceph-osd-ceph0-vdd
+89d4aa639ddf        <span class="token number">172.25</span>.249.200:8787/rhceph/rhceph-3-rhel7:latest    <span class="token string">"/entrypoint.sh"</span>    <span class="token number">57</span> minutes ago      Up <span class="token number">57</span> minutes                           ceph-osd-ceph0-vdc
+<span class="token punctuation">[</span>root@ceph0 ~<span class="token punctuation">]</span><span class="token comment"># lsblk</span>
+NAME   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sr0     <span class="token number">11</span>:0    <span class="token number">1</span>  738K  <span class="token number">0</span> rom  
+vda    <span class="token number">252</span>:0    <span class="token number">0</span>   40G  <span class="token number">0</span> disk 
+├─vda1 <span class="token number">252</span>:1    <span class="token number">0</span>    1M  <span class="token number">0</span> part 
+└─vda2 <span class="token number">252</span>:2    <span class="token number">0</span>   40G  <span class="token number">0</span> part /
+vdb    <span class="token number">252</span>:16   <span class="token number">0</span>   20G  <span class="token number">0</span> disk 
+├─vdb1 <span class="token number">252</span>:17   <span class="token number">0</span>   19G  <span class="token number">0</span> part 
+└─vdb2 <span class="token number">252</span>:18   <span class="token number">0</span>    1G  <span class="token number">0</span> part <span class="token comment">#日志区：用于高速缓存</span>
+vdc    <span class="token number">252</span>:32   <span class="token number">0</span>   20G  <span class="token number">0</span> disk 
+├─vdc1 <span class="token number">252</span>:33   <span class="token number">0</span>   19G  <span class="token number">0</span> part 
+└─vdc2 <span class="token number">252</span>:34   <span class="token number">0</span>    1G  <span class="token number">0</span> part <span class="token comment">#日志区：用于高速缓存</span>
+vdd    <span class="token number">252</span>:48   <span class="token number">0</span>   20G  <span class="token number">0</span> disk 
+├─vdd1 <span class="token number">252</span>:49   <span class="token number">0</span>   19G  <span class="token number">0</span> part 
+└─vdd2 <span class="token number">252</span>:50   <span class="token number">0</span>    1G  <span class="token number">0</span> part <span class="token comment">#日志区：用于高速缓存</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>查看控制节点运行的ceph角色</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>root@controller0 ~<span class="token punctuation">]</span><span class="token comment"># docker ps | grep ceph</span>
+764e05afea1c        <span class="token number">172.25</span>.249.200:8787/rhceph/rhceph-3-rhel7:latest                       <span class="token string">"/entrypoint.sh"</span>         <span class="token number">58</span> minutes ago      Up <span class="token number">58</span> minutes                                       ceph-mds-controller0
+fc4f33fe63a0        <span class="token number">172.25</span>.249.200:8787/rhceph/rhceph-3-rhel7:latest                       <span class="token string">"/entrypoint.sh"</span>         <span class="token number">58</span> minutes ago      Up <span class="token number">58</span> minutes                                       ceph-mgr-controller0
+25f52714cd63        <span class="token number">172.25</span>.249.200:8787/rhceph/rhceph-3-rhel7:latest                       <span class="token string">"/entrypoint.sh"</span>         <span class="token number">58</span> minutes ago      Up <span class="token number">58</span> minutes                                       ceph-mon-controller0<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span></span></code></pre>
+<p>查看存储池</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>root@controller0 ~<span class="token punctuation">]</span><span class="token comment"># ceph osd pool ls</span>
+images			<span class="token comment">#给glance提供存储</span>
+metrics			<span class="token comment">#Ceilometer使用</span>
+backups			<span class="token comment">#nova使用，虚拟机备份</span>
+vms				<span class="token comment">#nova使用，虚拟机临时存储</span>
+volumes			<span class="token comment">#给cinder提供块存储</span>
+manila_data		<span class="token comment">#共享文件系统</span>
+manila_metadata<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>查看镜像</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>root@controller0 ~<span class="token punctuation">]</span><span class="token comment"># rbd -p images ls</span>
+14b7e8b2-7c6d-4bcf-b159-1e4e7582107c
+1964be99-7551-4048-bbdd-5c2764231cde
+5f7f8208-33b5-4f17-8297-588f938182c0
+6b0128a9-4481-4ceb-b34e-ffe92e0dcfdd
+ec9473de-4048-4ebb-b08a-a9be619477ac
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack image list
++--------------------------------------+-----------------+--------+
+<span class="token operator">|</span> ID                                   <span class="token operator">|</span> Name            <span class="token operator">|</span> Status <span class="token operator">|</span>
++--------------------------------------+-----------------+--------+
+<span class="token operator">|</span> 1964be99-7551-4048-bbdd-5c2764231cde <span class="token operator">|</span> cloud-init      <span class="token operator">|</span> active <span class="token operator">|</span>
+<span class="token operator">|</span> ec9473de-4048-4ebb-b08a-a9be619477ac <span class="token operator">|</span> octavia-amphora <span class="token operator">|</span> active <span class="token operator">|</span>
+<span class="token operator">|</span> 6b0128a9-4481-4ceb-b34e-ffe92e0dcfdd <span class="token operator">|</span> rhel7           <span class="token operator">|</span> active <span class="token operator">|</span>
+<span class="token operator">|</span> 5f7f8208-33b5-4f17-8297-588f938182c0 <span class="token operator">|</span> rhel7-db        <span class="token operator">|</span> active <span class="token operator">|</span>
+<span class="token operator">|</span> 14b7e8b2-7c6d-4bcf-b159-1e4e7582107c <span class="token operator">|</span> rhel7-web       <span class="token operator">|</span> active <span class="token operator">|</span>
++--------------------------------------+-----------------+--------+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>查看虚拟机</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>root@controller0 ~<span class="token punctuation">]</span><span class="token comment"># rbd -p vms ls</span>
+6babf3b3-4d11-4572-ba78-b941b379ec38_disk
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server list
++--------------------------------------+------------+--------+----------------------------------------------+------------+---------+
+<span class="token operator">|</span> ID                                   <span class="token operator">|</span> Name       <span class="token operator">|</span> Status <span class="token operator">|</span> Networks                                     <span class="token operator">|</span> Image      <span class="token operator">|</span> Flavor  <span class="token operator">|</span>
++--------------------------------------+------------+--------+----------------------------------------------+------------+---------+
+<span class="token operator">|</span> 6babf3b3-4d11-4572-ba78-b941b379ec38 <span class="token operator">|</span> cloud-init <span class="token operator">|</span> ACTIVE <span class="token operator">|</span> finance-network1<span class="token operator">=</span><span class="token number">192.168</span>.1.9, <span class="token number">172.25</span>.250.110 <span class="token operator">|</span> cloud-init <span class="token operator">|</span> default <span class="token operator">|</span>
++--------------------------------------+------------+--------+----------------------------------------------+------------+---------+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>rados命令查看对象</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>root@controller0 ~<span class="token punctuation">]</span><span class="token comment"># rados -p vms ls | head</span>
+rbd_data.ae976b8b4567.00000000000003f8
+rbd_data.ae976b8b4567.00000000000001f5
+rbd_data.ae976b8b4567.0000000000000016
+rbd_data.ae976b8b4567.0000000000000651
+rbd_data.ae976b8b4567.000000000000064e
+rbd_data.ae976b8b4567.000000000000023f
+rbd_data.ae976b8b4567.00000000000005df
+rbd_data.ae976b8b4567.0000000000000625
+rbd_data.ae976b8b4567.00000000000005de
+rbd_data.ae976b8b4567.0000000000000256<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>服务都是通过openstack用户访问ceph存储，查看openstack用户权限</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>root@controller0 ~<span class="token punctuation">]</span><span class="token comment"># ceph auth get client.openstack</span>
+<span class="token punctuation">[</span>client.openstack<span class="token punctuation">]</span>
+        key <span class="token operator">=</span> AQAPHM9bAAAAABAA8DLv19H7QXzX0CnaTql/1w<span class="token operator">==</span>
+        caps mds <span class="token operator">=</span> <span class="token string">""</span>
+        caps mgr <span class="token operator">=</span> <span class="token string">"allow *"</span>
+        caps mon <span class="token operator">=</span> <span class="token string">"profile rbd"</span>
+        caps osd <span class="token operator">=</span> <span class="token string">"profile rbd pool=volumes, profile rbd pool=backups, profile rbd pool=vms, profile rbd pool=images, profile rbd pool=metrics"</span>
+exported keyring <span class="token keyword">for</span> client.openstack<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>在控制节点查看cinder对接ceph的配置</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>root@controller0 ~<span class="token punctuation">]</span><span class="token comment"># vim /var/lib/config-data/puppet-generated/cinder/etc/cinder/cinder.conf </span>
+<span class="token punctuation">[</span>tripleo_ceph<span class="token punctuation">]</span>
+<span class="token assign-left variable">backend_host</span><span class="token operator">=</span>hostgroup
+<span class="token assign-left variable">volume_backend_name</span><span class="token operator">=</span>tripleo_ceph
+<span class="token assign-left variable">volume_driver</span><span class="token operator">=</span>cinder.volume.drivers.rbd.RBDDriver
+<span class="token assign-left variable">rbd_ceph_conf</span><span class="token operator">=</span>/etc/ceph/ceph.conf
+<span class="token assign-left variable">rbd_user</span><span class="token operator">=</span>openstack
+<span class="token assign-left variable">rbd_pool</span><span class="token operator">=</span>volumes<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>在控制节点查看glance对接ceph的配置</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>root@controller0 ~<span class="token punctuation">]</span><span class="token comment"># vim /var/lib/config-data/puppet-generated/glance_api/etc/glance/glance-api.conf </span>
+<span class="token punctuation">[</span>glance_store<span class="token punctuation">]</span>
+<span class="token assign-left variable">stores</span><span class="token operator">=</span>http,rbd
+<span class="token assign-left variable">default_store</span><span class="token operator">=</span>rbd
+<span class="token assign-left variable">rbd_store_pool</span><span class="token operator">=</span>images
+<span class="token assign-left variable">rbd_store_user</span><span class="token operator">=</span>openstack
+<span class="token assign-left variable">rbd_store_ceph_conf</span><span class="token operator">=</span>/etc/ceph/ceph.conf
+<span class="token assign-left variable">os_region_name</span><span class="token operator">=</span>regionOne<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>在计算节点查看nova对接ceph的配置</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>root@compute0 ~<span class="token punctuation">]</span><span class="token comment"># vim /var/lib/config-data/puppet-generated/nova_libvirt/etc/nova/nova.conf</span>
+<span class="token punctuation">[</span>libvirt<span class="token punctuation">]</span>
+<span class="token assign-left variable">live_migration_uri</span><span class="token operator">=</span>qemu+ssh://nova_migration@%s:2022/system?keyfile<span class="token operator">=</span>/etc/nova/migration/identity
+<span class="token assign-left variable">rbd_user</span><span class="token operator">=</span>openstack
+<span class="token assign-left variable">rbd_secret_uuid</span><span class="token operator">=</span>fe8e3db0-d6c3-11e8-a76d-52540001fac8
+<span class="token assign-left variable">images_type</span><span class="token operator">=</span>rbd
+<span class="token assign-left variable">images_rbd_pool</span><span class="token operator">=</span>vms
+<span class="token assign-left variable">images_rbd_ceph_conf</span><span class="token operator">=</span>/etc/ceph/ceph.conf
+<span class="token assign-left variable">virt_type</span><span class="token operator">=</span>kvm
+<span class="token assign-left variable">cpu_mode</span><span class="token operator">=</span>none
+<span class="token assign-left variable">inject_password</span><span class="token operator">=</span>False
+<span class="token assign-left variable">inject_key</span><span class="token operator">=</span>False
+<span class="token assign-left variable">inject_partition</span><span class="token operator">=</span>-2
+<span class="token assign-left variable">hw_disk_discard</span><span class="token operator">=</span>unmap
+<span class="token assign-left variable">enabled_perf_events</span><span class="token operator">=</span>
+<span class="token assign-left variable">disk_cachemodes</span><span class="token operator">=</span>network<span class="token operator">=</span>writeback
+<span class="token comment">#libvirt与ceph对接组要密钥</span>
+<span class="token punctuation">[</span>root@compute0 ~<span class="token punctuation">]</span><span class="token comment"># virsh secret-list</span>
+ UUID                                  Usage
+--------------------------------------------------------------------------------
+ fe8e3db0-d6c3-11e8-a76d-52540001fac8  ceph client.openstack secret<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<h4 id="练习：管理cinder块存储">练习：管理cinder块存储</h4>
+<p>准备环境</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">]</span>$ lab storage-backend setup<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<p>查看ceph集群状态</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">]</span>$ <span class="token function">ssh</span> root@controller0
+<span class="token punctuation">[</span>root@controller0 ~<span class="token punctuation">]</span><span class="token comment">#  docker ps | grep ceph</span>
+764e05afea1c        <span class="token number">172.25</span>.249.200:8787/rhceph/rhceph-3-rhel7:latest                       <span class="token string">"/entrypoint.sh"</span>         About an hour ago   Up About an hour                                     ceph-mds-controller0
+fc4f33fe63a0        <span class="token number">172.25</span>.249.200:8787/rhceph/rhceph-3-rhel7:latest                       <span class="token string">"/entrypoint.sh"</span>         About an hour ago   Up About an hour                                     ceph-mgr-controller0
+25f52714cd63        <span class="token number">172.25</span>.249.200:8787/rhceph/rhceph-3-rhel7:latest                       <span class="token string">"/entrypoint.sh"</span>         About an hour ago   Up About an hour                                     ceph-mon-controller0
+<span class="token punctuation">[</span>root@controller0 ~<span class="token punctuation">]</span><span class="token comment"># ceph -s</span>
+  cluster:
+    id:     fe8e3db0-d6c3-11e8-a76d-52540001fac8
+    health: HEALTH_OK
+ 
+  services:
+    mon: <span class="token number">1</span> daemons, quorum controller0
+    mgr: controller0<span class="token punctuation">(</span>active<span class="token punctuation">)</span>
+    mds: cephfs-1/1/1 up  <span class="token punctuation">&#123;</span><span class="token number">0</span><span class="token operator">=</span>controller0<span class="token operator">=</span>up:active<span class="token punctuation">&#125;</span>
+    osd: <span class="token number">6</span> osds: <span class="token number">6</span> up, <span class="token number">6</span> <span class="token keyword">in</span>
+ 
+  data:
+    pools:   <span class="token number">7</span> pools, <span class="token number">416</span> pgs
+    objects: <span class="token number">1434</span> objects, <span class="token number">9120</span> MB
+    usage:   <span class="token number">9759</span> MB used, <span class="token number">104</span> GB / <span class="token number">113</span> GB avail
+    pgs:     <span class="token number">416</span> active+clean
+ 
+  io:
+    client:   <span class="token number">3155</span> B/s wr, <span class="token number">0</span> op/s rd, <span class="token number">0</span> op/s wr
+ 
+<span class="token punctuation">[</span>root@controller0 ~<span class="token punctuation">]</span><span class="token comment"># docker exec -it glance_api grep -iE 'rbd|ceph' /etc/glance/glance-api.conf | grep -v ^# | grep -v ^$</span>
+<span class="token assign-left variable">stores</span><span class="token operator">=</span>http,rbd
+<span class="token assign-left variable">default_store</span><span class="token operator">=</span>rbd
+<span class="token assign-left variable">rbd_store_pool</span><span class="token operator">=</span>images
+<span class="token assign-left variable">rbd_store_user</span><span class="token operator">=</span>openstack
+<span class="token assign-left variable">rbd_store_ceph_conf</span><span class="token operator">=</span>/etc/ceph/ceph.conf
+<span class="token punctuation">[</span>root@controller0 ~<span class="token punctuation">]</span><span class="token comment"># docker exec -it cinder_api grep -Ei 'rbd|ceph' /etc/cinder/cinder.conf | grep -v ^#</span>
+<span class="token assign-left variable">enabled_backends</span><span class="token operator">=</span>tripleo_ceph
+<span class="token punctuation">[</span>tripleo_ceph<span class="token punctuation">]</span>
+<span class="token assign-left variable">volume_backend_name</span><span class="token operator">=</span>tripleo_ceph
+<span class="token assign-left variable">volume_driver</span><span class="token operator">=</span>cinder.volume.drivers.rbd.RBDDriver
+<span class="token assign-left variable">rbd_ceph_conf</span><span class="token operator">=</span>/etc/ceph/ceph.conf
+<span class="token assign-left variable">rbd_user</span><span class="token operator">=</span>openstack
+<span class="token assign-left variable">rbd_pool</span><span class="token operator">=</span>volumes
+<span class="token punctuation">[</span>root@controller0 ~<span class="token punctuation">]</span><span class="token comment"># ceph osd pool ls</span>
+images
+metrics
+backups
+vms
+volumes
+manila_data
+manila_metadata
+<span class="token punctuation">[</span>root@controller0 ~<span class="token punctuation">]</span><span class="token comment"># exit</span>
+<span class="token builtin class-name">logout</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>上传镜像到ceph存储</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">]</span>$ <span class="token builtin class-name">source</span> developer1-finance-rc
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ <span class="token function">wget</span> http://materials.example.com/osp-small.qcow2
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack image create --disk-format qcow2 --file ~/osp-small.qcow2 finance-image
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack image list
++--------------------------------------+-----------------+--------+
+<span class="token operator">|</span> ID                                   <span class="token operator">|</span> Name            <span class="token operator">|</span> Status <span class="token operator">|</span>
++--------------------------------------+-----------------+--------+
+<span class="token operator">|</span> 1964be99-7551-4048-bbdd-5c2764231cde <span class="token operator">|</span> cloud-init      <span class="token operator">|</span> active <span class="token operator">|</span>
+<span class="token operator">|</span> cd3027b1-7fdb-4ce2-999a-200259350fe1 <span class="token operator">|</span> finance-image   <span class="token operator">|</span> active <span class="token operator">|</span>
+<span class="token operator">|</span> ec9473de-4048-4ebb-b08a-a9be619477ac <span class="token operator">|</span> octavia-amphora <span class="token operator">|</span> active <span class="token operator">|</span>
+<span class="token operator">|</span> 6b0128a9-4481-4ceb-b34e-ffe92e0dcfdd <span class="token operator">|</span> rhel7           <span class="token operator">|</span> active <span class="token operator">|</span>
+<span class="token operator">|</span> 5f7f8208-33b5-4f17-8297-588f938182c0 <span class="token operator">|</span> rhel7-db        <span class="token operator">|</span> active <span class="token operator">|</span>
+<span class="token operator">|</span> 14b7e8b2-7c6d-4bcf-b159-1e4e7582107c <span class="token operator">|</span> rhel7-web       <span class="token operator">|</span> active <span class="token operator">|</span>
++--------------------------------------+-----------------+--------+
+<span class="token punctuation">[</span>root@controller0 ~<span class="token punctuation">]</span><span class="token comment"># rados -p image ls | grep cd3027b1-7fdb-4ce2-999a-200259350fe1</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>创建云主机和云硬盘，并将云硬盘挂在给云主机</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server create --flavor default --image finance-image --nic net-id<span class="token operator">=</span>finance-network1 --security-group default finance-server1
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server list
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack volume create --size <span class="token number">1</span> finance-volume1
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack volume list
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server <span class="token function">add</span> volume finance-server1 finance-volume1
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack volume list
++--------------------------------------+-----------------+--------+------+------------------------------------------+
+<span class="token operator">|</span> ID                                   <span class="token operator">|</span> Name            <span class="token operator">|</span> Status <span class="token operator">|</span> Size <span class="token operator">|</span> Attached to                              <span class="token operator">|</span>
++--------------------------------------+-----------------+--------+------+------------------------------------------+
+<span class="token operator">|</span> 7caf5e6a-b7a1-4e0b-b63f-9d5000f02f7e <span class="token operator">|</span> finance-volume1 <span class="token operator">|</span> in-use <span class="token operator">|</span>    <span class="token number">1</span> <span class="token operator">|</span> Attached to finance-server1 on /dev/vdb  <span class="token operator">|</span>
++--------------------------------------+-----------------+--------+------+------------------------------------------+
+<span class="token punctuation">[</span>root@controller0 ~<span class="token punctuation">]</span><span class="token comment"># rados -p volumes ls</span>
+rbd_directory
+rbd_info
+rbd_header.b0d02b94f43e
+rbd_id.volume-7caf5e6a-b7a1-4e0b-b63f-9d5000f02f7e
+rbd_object_map.b0d02b94f43e<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>清除环境</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">]</span>$ lab storage-backend cleanup<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<h3 id="第二节-比较块存储">第二节 比较块存储</h3>
+<p>swift命令：</p>
+<p>老版本 OpenStack 中的 swift post、swift list 和 swift stat 等命令仍然支持</p>
+<p>新版本 OpenStack 中，使用 OpenStack 统一命令行工具管理</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">$ openstack container create <span class="token operator">&lt;</span>container_name<span class="token operator">></span>：创建容器
+$ openstack container list：列出所有可用的容器
+$ openstack container delete <span class="token operator">&lt;</span>container_name<span class="token operator">></span>：删除指定的容器
+$ openstack container save <span class="token operator">&lt;</span>container_name<span class="token operator">></span>：下载/保存指定容器中的内容至本地
+$ openstack object create <span class="token operator">&lt;</span>container_name<span class="token operator">></span> <span class="token operator">&lt;</span>object_name<span class="token operator">></span>：上传已存在的对象至指定容器中
+$ openstack object list <span class="token operator">&lt;</span>container_name<span class="token operator">></span>：列出指定容器中的所有对象
+$ openstack object delete <span class="token operator">&lt;</span>container_name<span class="token operator">></span> <span class="token operator">&lt;</span>object_name<span class="token operator">></span>：删除指定容器中的对象<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<h3 id="第三节-manila共享文件系统">第三节 manila共享文件系统</h3>
+<p>以管理员用户身份创建共享类型</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">$ manila type-create cephfstype <span class="token boolean">false</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<p>说明：false 参数为 driver_handles_share_servers 参数的值，若开启动态扩展共享节点，该参数为 true</p>
+<p>以租户用户身份创建共享</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">$ manila create --name demo-share --share-type cephfstype cephfs <span class="token number">1</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<p>说明： --share-type 选项基于后端存储对共享进行分类，并且该共享大小为1GB。 当共享可用时，启动虚拟机实例，单独连接 tenant 网络和存储网络（租户网络与存储网络需要隔离）</p>
+<p>在 Ceph Monitor 节点上以 client.manila 用户进行身份认证来创建 cephx 用户，保存该用户的 secret key</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">$ ceph --name<span class="token operator">=</span>client.manila --keyring<span class="token operator">=</span>/etc/ceph/manila.keyring auth get-orcreata client.cloud-user <span class="token operator">></span> cloud-user.keyring
+$ manila access-allow demo-share cephx cloud-user<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
+<p>追踪共享的导出路径</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">$ manila share-export-location-list demo-share --columns Path<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<h4 id="练习：管理manila共享文件系统">练习：管理manila共享文件系统</h4>
+<p>初始化环境</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">]</span>$ lab storage-manila setup<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<p>登录控制节点，确保manila服务运行</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>root@controller0 ~<span class="token punctuation">]</span><span class="token comment"># docker ps | grep manila</span>
+86d61ab757fc        <span class="token number">172.25</span>.249.200:8787/rhosp13/openstack-manila-share:pcmklatest          <span class="token string">"/bin/bash /usr/lo..."</span>   About an hour ago   Up About an hour                                     openstack-manila-share-docker-0
+f47af1e5d0c0        <span class="token number">172.25</span>.249.200:8787/rhosp13/openstack-manila-api:latest                <span class="token string">"kolla_start"</span>            <span class="token number">19</span> months ago       Up About an hour                                     manila_api
+d601bacac004        <span class="token number">172.25</span>.249.200:8787/rhosp13/openstack-manila-scheduler:latest          <span class="token string">"kolla_start"</span>            <span class="token number">19</span> months ago       Up About an hour <span class="token punctuation">(</span>healthy<span class="token punctuation">)</span>                           manila_scheduler
+You have mail <span class="token keyword">in</span> /var/spool/mail/root<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>查看manila对接ceph的配置</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>root@controller0 manila<span class="token punctuation">]</span><span class="token comment"># vim /var/lib/config-data/puppetgenerated/manila/etc/manila/manila.conf</span>
+<span class="token assign-left variable">enabled_share_backends</span><span class="token operator">=</span>cephfs
+<span class="token assign-left variable">enabled_share_protocols</span><span class="token operator">=</span>CEPHFS
+<span class="token punctuation">[</span>cephfs<span class="token punctuation">]</span>
+<span class="token assign-left variable">driver_handles_share_servers</span><span class="token operator">=</span>False
+<span class="token assign-left variable">share_backend_name</span><span class="token operator">=</span>cephfs
+<span class="token assign-left variable">share_driver</span><span class="token operator">=</span>manila.share.drivers.cephfs.driver.CephFSDriver
+<span class="token assign-left variable">cephfs_conf_path</span><span class="token operator">=</span>/etc/ceph/ceph.conf
+<span class="token assign-left variable">cephfs_auth_id</span><span class="token operator">=</span>manila
+<span class="token assign-left variable">cephfs_cluster_name</span><span class="token operator">=</span>ceph
+<span class="token assign-left variable">cephfs_enable_snapshots</span><span class="token operator">=</span>False
+<span class="token assign-left variable">cephfs_protocol_helper_type</span><span class="token operator">=</span>CEPHFS
+<span class="token punctuation">[</span>root@controller0 manila<span class="token punctuation">]</span><span class="token comment"># exit</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>创建manila共享文件系统，并发放云主机</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ <span class="token function">cat</span> manila/user-data.file 
+<span class="token comment">#!/bin/bash</span>
+<span class="token function">cat</span> <span class="token operator">></span> /etc/sysconfig/network-scripts/ifcfg-eth1 <span class="token operator">&lt;&lt;</span> <span class="token string">eof
+DEVICE=eth1
+ONBOOT=yes
+BOOTPROTO=dhcp
+eof</span>
+<span class="token function">ifup</span> eth1
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">]</span>$ <span class="token builtin class-name">source</span> architect1-finance-rc 
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ manila service-list
++----+------------------+------------------+------+---------+-------+----------------------------+
+<span class="token operator">|</span> Id <span class="token operator">|</span> Binary           <span class="token operator">|</span> Host             <span class="token operator">|</span> Zone <span class="token operator">|</span> Status  <span class="token operator">|</span> State <span class="token operator">|</span> Updated_at                 <span class="token operator">|</span>
++----+------------------+------------------+------+---------+-------+----------------------------+
+<span class="token operator">|</span> <span class="token number">1</span>  <span class="token operator">|</span> manila-scheduler <span class="token operator">|</span> hostgroup        <span class="token operator">|</span> nova <span class="token operator">|</span> enabled <span class="token operator">|</span> up    <span class="token operator">|</span> <span class="token number">2020</span>-05-31T17:57:18.000000 <span class="token operator">|</span>
+<span class="token operator">|</span> <span class="token number">2</span>  <span class="token operator">|</span> manila-share     <span class="token operator">|</span> hostgroup@cephfs <span class="token operator">|</span> nova <span class="token operator">|</span> enabled <span class="token operator">|</span> up    <span class="token operator">|</span> <span class="token number">2020</span>-05-31T17:57:21.000000 <span class="token operator">|</span>
++----+------------------+------------------+------+---------+-------+----------------------------+
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ manila type-create cephfstype <span class="token boolean">false</span>
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ <span class="token builtin class-name">source</span> developer1-finance-rc 
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ manila create --name finance-share1 --share-type cephfstype cephfs <span class="token number">1</span>
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ manila list
++--------------------------------------+----------------+------+-------------+-----------+-----------+-----------------+------+-------------------+
+<span class="token operator">|</span> ID                                   <span class="token operator">|</span> Name           <span class="token operator">|</span> Size <span class="token operator">|</span> Share Proto <span class="token operator">|</span> Status    <span class="token operator">|</span> Is Public <span class="token operator">|</span> Share Type Name <span class="token operator">|</span> Host <span class="token operator">|</span> Availability Zone <span class="token operator">|</span>
++--------------------------------------+----------------+------+-------------+-----------+-----------+-----------------+------+-------------------+
+<span class="token operator">|</span> fc5d9631-71a8-4a27-9a85-b7f0f93e7708 <span class="token operator">|</span> finance-share1 <span class="token operator">|</span> <span class="token number">1</span>    <span class="token operator">|</span> CEPHFS      <span class="token operator">|</span> available <span class="token operator">|</span> False     <span class="token operator">|</span> cephfstype      <span class="token operator">|</span>      <span class="token operator">|</span> nova              <span class="token operator">|</span>
++--------------------------------------+----------------+------+-------------+-----------+-----------+-----------------+------+-------------------+
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server create --flavor default --image rhel7 --key-name example-keypair --nic net-id<span class="token operator">=</span>finance-network1 --nic net-id<span class="token operator">=</span>provider-storage --user-data /home/student/manila/user-data.file  finance-server1 --wait
+<span class="token comment">#cloud=init 实现</span>
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ <span class="token function">cat</span> manila/user-data.file 
+<span class="token comment">#!/bin/bash</span>
+<span class="token function">cat</span> <span class="token operator">></span> /etc/sysconfig/network-scripts/ifcfg-eth1 <span class="token operator">&lt;&lt;</span> <span class="token string">eof
+DEVICE=eth1
+ONBOOT=yes
+BOOTPROTO=dhcp
+eof</span>
+<span class="token function">ifup</span> eth1
+<span class="token comment">#给云主机绑定浮动ip</span>
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server <span class="token function">add</span> floating <span class="token function">ip</span> finance-server1 <span class="token number">172.25</span>.250.102<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>用manila用户在ceph中创建cloud-user用户，用于访问ceph存储</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>root@controller0 ~<span class="token punctuation">]</span><span class="token comment"># ceph auth get-or-create client.cloud-user --name=client.manila --keyring=/etc/ceph/ceph.client.manila.keyring > /root/cloud-user.keyring</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<p>复制ceph配置文件和cloud-user的密钥到云主机中</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>root@controller0 ~<span class="token punctuation">]</span><span class="token comment"># scp cloud-user.keyring /etc/ceph/ceph.conf student@workstation:~</span>
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ <span class="token function">scp</span> ceph.conf cloud-user.keyring cloud-user@172.25.250.102:~<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
+<p>设置cloud-user用户可以访问manila共享文件系统</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$  manila access-allow finance-share1 cephx cloud-user
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$  manila access-list finance-share1 
++--------------------------------------+-------------+------------+--------------+--------+------------------------------------------+----------------------------+----------------------------+
+<span class="token operator">|</span> <span class="token function">id</span>                                   <span class="token operator">|</span> access_type <span class="token operator">|</span> access_to  <span class="token operator">|</span> access_level <span class="token operator">|</span> state  <span class="token operator">|</span> access_key                               <span class="token operator">|</span> created_at                 <span class="token operator">|</span> updated_at                 <span class="token operator">|</span>
++--------------------------------------+-------------+------------+--------------+--------+------------------------------------------+----------------------------+----------------------------+
+<span class="token operator">|</span> 2e6ae095-1385-4627-9cf6-d1fa207f77b9 <span class="token operator">|</span> cephx       <span class="token operator">|</span> cloud-user <span class="token operator">|</span> rw           <span class="token operator">|</span> active <span class="token operator">|</span> <span class="token assign-left variable">AQB58dNegxrMNhAA0rYfY6OtkvRhNcrbetTAjA</span><span class="token operator">==</span> <span class="token operator">|</span> <span class="token number">2020</span>-05-31T18:14:50.000000 <span class="token operator">|</span> <span class="token number">2020</span>-05-31T18:14:50.000000 <span class="token operator">|</span>
++--------------------------------------+-------------+------------+--------------+--------+------------------------------------------+----------------------------+----------------------------+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>查看manila共享文件系统</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ manila share-export-location-list finance-share1
++--------------------------------------+------------------------------------------------------------------------+-----------+
+<span class="token operator">|</span> ID                                   <span class="token operator">|</span> Path                                                                   <span class="token operator">|</span> Preferred <span class="token operator">|</span>
++--------------------------------------+------------------------------------------------------------------------+-----------+
+<span class="token operator">|</span> 2d553e5a-f992-477c-93e3-908ee461ff42 <span class="token operator">|</span> <span class="token number">172.24</span>.3.1:6789:/volumes/_nogroup/7b7469ee-091a-4ad0-9c48-904ac9b74d2c <span class="token operator">|</span> False     <span class="token operator">|</span>
++--------------------------------------+------------------------------------------------------------------------+-----------+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>登录云主机，安装驱动程序，挂载manila服务</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ <span class="token function">ssh</span> cloud-user@172.25.250.102
+<span class="token punctuation">[</span>cloud-user@finance-server1 ~<span class="token punctuation">]</span>$ <span class="token function">su</span> -
+Password: redhat
+<span class="token punctuation">[</span>root@finance-server1 ~<span class="token punctuation">]</span><span class="token comment"># mkdir /mnt/ceph</span>
+<span class="token punctuation">[</span>root@finance-server1 ~<span class="token punctuation">]</span><span class="token comment"># curl -s -f -o /etc/yum.repos.d/ceph.repo http://materials.example.com/ceph.repo</span>
+<span class="token punctuation">[</span>root@finance-server1 ~<span class="token punctuation">]</span><span class="token comment"># yum -y install ceph-fuse</span>
+<span class="token punctuation">[</span>root@finance-server1 ~<span class="token punctuation">]</span><span class="token comment"># mkdir -p /mnt/ceph</span>
+<span class="token punctuation">[</span>root@finance-server1 ~<span class="token punctuation">]</span><span class="token comment"># ceph-fuse /mnt/ceph/ --id=cloud-user --conf=/home/cloud-user/ceph.conf --keyring=/home/cloud-user/cloud-user.keyring --client-mountpoint=/volumes/_nogroup/7b7469ee-091a-4ad0-9c48-904ac9b74d2c</span>
+<span class="token punctuation">[</span>root@finance-server1 ~<span class="token punctuation">]</span><span class="token comment"># df -h /mnt/ceph</span>
+Filesystem      Size  Used Avail Use% Mounted on
+ceph-fuse       <span class="token number">1</span>.0G     <span class="token number">0</span>  <span class="token number">1</span>.0G   <span class="token number">0</span>% /mnt/ceph
+<span class="token punctuation">[</span>root@finance-server1 ~<span class="token punctuation">]</span><span class="token comment"># echo hello > /mnt/ceph/hello.txt</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<img src="/2022/06/05/RHOSP13%E5%AE%9E%E9%AA%8C%E6%89%8B%E5%86%8C/20220626151835.png" class title="挂载点路径">
+<p>清空环境</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server delete finance-server1
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ manila delete finance-share1
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ <span class="token builtin class-name">source</span> architect1-finance-rc 
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ manila type-delete cephfstype
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ lab storage-manila cleanup<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<h3 id="第四节-管理临时存储">第四节 管理临时存储</h3>
+<p><strong>临时与持久存储的区别</strong></p>
+<ul>
+<li>
+<p>当租户用户使用镜像创建实例时，该实例具有的唯一的初始存储是临时存储（根磁盘）</p>
+<p>该临时存储是一种非常简单且易用的存储资源，但缺乏存储分层（tiering）和磁盘容量扩展等高级功能</p>
+</li>
+<li>
+<p>存储在临时存储中的任何数据在实例终止后无法保留</p>
+</li>
+<li>
+<p>临时存储的生命周期由 OpenStack Nova 计算服务管理</p>
+</li>
+<li>
+<p>持久存储在其附加的实例终止之后依然存在</p>
+</li>
+<li>
+<p>持久存储由 OpenStack Cinder、Swift 与 Manila 管理</p>
+</li>
+</ul>
+<p><strong>临时存储与 Libvirt：</strong></p>
+<ul>
+<li>Nova 计算服务使用 KVM 作为 Hypervisor 的原生 libvirt 虚拟化平台</li>
+<li>实例作为 KVM 虚拟机存在，libvirtd 服务根据用户的指令对虚拟机执行操作</li>
+<li>flavor 决定每个实例的大小</li>
+<li>Nova 允许实例消耗来自 hypervisor 系统的计算和存储资源</li>
+<li>flavor 属性还包括 vCPU数量、内存量、交换内存量、实例的磁盘大小，以及实例的额外临时磁盘大小</li>
+<li>作为 flavor 定义的一部分而创建的存储单元本质上都是临时存储</li>
+<li>默认情况下，计算服务在计算节点上的 /var/lib/nova/instances/UUID/ 目录中创建代表临时存储文件</li>
+<li>若 Ceph 用作 Nova 的后端存储，则后端对象存储在通常名为 vms 的 pool 中</li>
+<li>请注意，将 Ceph 存储用作 OpenStack 计算服务的后端存储并不使临时存储转换为持久存储！</li>
+<li>临时存储仍然会在实例删除时消失，无论它位于计算节点本地，还是来自 Ceph等外部后端存储</li>
+</ul>
+<p><strong>创建持久根磁盘（Root Disks）：</strong></p>
+<ul>
+<li>
+<p>实例镜像的内容可以提取到持久卷</p>
+</li>
+<li>
+<p>通过任何实例对根文件系统所做的任何更改都将一直存在，直到删除持久卷为止</p>
+<p>$ openstack volume create --size   &lt;volume_size&gt; --image &lt;image_name&gt; &lt;volume_name&gt;</p>
+<p>例：$ openstack volume create --size 10 --image rhel7 demo-vol</p>
+</li>
+<li>
+<p>创建名称为 demo-vol 的 volume，大小10GB，并将 rhel7 镜像根文件系统注入该 volume 中；使用 openstack server create 创建实例时，–volume 选项指定 volume 来启动实例</p>
+</li>
+</ul>
+<h4 id="练习：管理临时存储">练习：管理临时存储</h4>
+<p>准备环境</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ lab storage-compare setup<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<p>创建云主机</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">]</span>$ <span class="token builtin class-name">source</span> architect1-finance-rc 
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server create --flavor default --image rhel7 --nic net-id<span class="token operator">=</span>finance-network1 --availability-zone nova:compute1.overcloud.example.com finance-server1
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server list
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ <span class="token function">ssh</span> root@controller0
+Last login: Sun May <span class="token number">31</span> <span class="token number">17</span>:17:46 <span class="token number">2020</span> from <span class="token number">172.25</span>.250.254
+<span class="token punctuation">[</span>root@controller0 ~<span class="token punctuation">]</span><span class="token comment"># rados -p vms ls | grep 3dda1087-d6b8-4e5d-ad49-2dd6c055c225</span>
+rbd_id.3dda1087-d6b8-4e5d-ad49-2dd6c055c225_disk<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>删除云主机后，临时存储也被删除</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server delete finance-server1
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ <span class="token function">ssh</span> root@controller0
+Last login: Sun May <span class="token number">31</span> <span class="token number">18</span>:58:25 <span class="token number">2020</span> from <span class="token number">172.25</span>.250.254
+<span class="token punctuation">[</span>root@controller0 ~<span class="token punctuation">]</span><span class="token comment"># rados -p vms ls | grep 3dda1087-d6b8-4e5d-ad49-2dd6c055c225</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span></span></code></pre>
+<p>设置临时存储为计算节点的本地空间</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">]</span>$ <span class="token function">ssh</span> root@compute1
+<span class="token punctuation">[</span>root@compute1 ~<span class="token punctuation">]</span><span class="token comment"># vim /var/lib/config-data/puppetgenerated/nova_libvirt/etc/nova/nova.conf</span>
+<span class="token punctuation">[</span>libvirt<span class="token punctuation">]</span>
+<span class="token comment">#images_type=rbd</span>
+<span class="token punctuation">[</span>root@compute1 ~<span class="token punctuation">]</span><span class="token comment"># docker restart nova_compute</span>
+<span class="token punctuation">[</span>root@compute1 ~<span class="token punctuation">]</span><span class="token comment"># exit</span>
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">]</span>$ <span class="token builtin class-name">source</span> architect1-finance-rc
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server create --flavor default --image rhel7 --nic net-id<span class="token operator">=</span>finance-network1 --availability-zone nova:compute1.overcloud.example.com finance-server1
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server list
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ <span class="token function">ssh</span> root@compute1
+Last login: Sun May <span class="token number">31</span> <span class="token number">19</span>:00:07 <span class="token number">2020</span> from <span class="token number">172.25</span>.250.254
+<span class="token comment">#查看云主机的根磁盘已经存放在计算节点本地</span>
+<span class="token punctuation">[</span>root@compute1 ~<span class="token punctuation">]</span><span class="token comment"># ls /var/lib/nova/instances/</span>
+_base  compute_nodes  e621ca91-9c12-42f5-aa73-3e73547d9d0a  locks
+<span class="token punctuation">[</span>root@compute1 ~<span class="token punctuation">]</span><span class="token comment"># ls /var/lib/nova/instances/e621ca91-9c12-42f5-aa73-3e73547d9d0a/</span>
+console.log  disk  disk.info
+<span class="token comment">#删除云主机，磁盘文件也被删除</span>
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server delete finance-server1
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ <span class="token function">ssh</span> root@compute1
+Last login: Sun May <span class="token number">31</span> <span class="token number">19</span>:02:02 <span class="token number">2020</span> from <span class="token number">172.25</span>.250.254
+<span class="token punctuation">[</span>root@compute1 ~<span class="token punctuation">]</span><span class="token comment"># ls /var/lib/nova/instances/</span>
+_base  compute_nodes  locks<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<h4 id="练习：创建永久存储作为云主机的根磁盘">练习：创建永久存储作为云主机的根磁盘</h4>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>root@compute1 ~<span class="token punctuation">]</span><span class="token comment"># vim /var/lib/config-data/puppetgenerated/nova_libvirt/etc/nova/nova.conf</span>
+<span class="token punctuation">[</span>libvirt<span class="token punctuation">]</span>
+<span class="token assign-left variable">images_type</span><span class="token operator">=</span>rbd
+<span class="token punctuation">[</span>root@compute1 ~<span class="token punctuation">]</span><span class="token comment"># docker restart nova_compute</span>
+<span class="token comment">#将镜像导入到云硬盘中</span>
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack volume create --size <span class="token number">10</span> --image rhel7 finance-vol1
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack volume list
+<span class="token punctuation">[</span>root@controller0 ~<span class="token punctuation">]</span><span class="token comment"># rados -p volumes ls | grep a63d54f5-a68a-486b-9c07-9a735d83dff0</span>
+rbd_id.volume-a63d54f5-a68a-486b-9c07-9a735d83dff0
+<span class="token comment">#创建虚拟机并使用块存储用作系统盘</span>
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server create --flavor default --volume finance-vol1 --key-name example-keypair --nic net-id<span class="token operator">=</span>finance-network1 finance-server2 --wait
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack floating <span class="token function">ip</span> list
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server <span class="token function">add</span> floating <span class="token function">ip</span> finance-server2 <span class="token number">172.25</span>.250.110
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ <span class="token function">ssh</span> cloud-user@172.25.250.110
+<span class="token punctuation">[</span>cloud-user@finance-server2 ~<span class="token punctuation">]</span>$ <span class="token function">sudo</span> -i
+<span class="token punctuation">[</span>root@finance-server2 ~<span class="token punctuation">]</span><span class="token comment"># echo hello > /test</span>
+<span class="token punctuation">[</span>root@finance-server2 ~<span class="token punctuation">]</span><span class="token comment"># sync</span>
+<span class="token punctuation">[</span>root@finance-server2 ~<span class="token punctuation">]</span><span class="token comment"># exit</span>
+<span class="token comment">#删除云主机，查看卷还在</span>
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server delete finance-server2
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ <span class="token function">ssh</span> root@controller0
+Last login: Sun May <span class="token number">31</span> <span class="token number">19</span>:07:23 <span class="token number">2020</span> from <span class="token number">172.25</span>.250.254
+<span class="token punctuation">[</span>root@controller0 ~<span class="token punctuation">]</span><span class="token comment"># rados -p volumes ls | grep a63d54f5-a68a-486b-9c07-9a735d83dff0</span>
+rbd_id.volume-a63d54f5-a68a-486b-9c07-9a735d83dff0<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>使用块存储启动虚拟机</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server create --flavor default --volume finance-vol1 --key-name example-keypair --nic net-id<span class="token operator">=</span>finance-network1 finance-server2 --wait
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server <span class="token function">add</span> floating <span class="token function">ip</span> finance-server2 <span class="token number">172.25</span>.250.110
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ <span class="token function">ssh</span> cloud-user@172.25.250.110
+<span class="token punctuation">[</span>cloud-user@finance-server2 ~<span class="token punctuation">]</span>$ <span class="token function">cat</span> /test
+hello<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>为云主机附加卷</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack volume create --size <span class="token number">1</span> finance-vol2
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server <span class="token function">add</span> volume finance-server2 finance-vol2
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ <span class="token function">ssh</span> cloud-user@172.25.250.110
+<span class="token punctuation">[</span>cloud-user@finance-server2 ~<span class="token punctuation">]</span>$ lsblk
+NAME   MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+vda    <span class="token number">253</span>:0    <span class="token number">0</span>  10G  <span class="token number">0</span> disk 
+└─vda1 <span class="token number">253</span>:1    <span class="token number">0</span>  10G  <span class="token number">0</span> part /
+vdb    <span class="token number">253</span>:16   <span class="token number">0</span>   1G  <span class="token number">0</span> disk 
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack volume list<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>清除环境</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server delete finance-server2
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack volume delete finance-vol1 finance-vol2
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ lab storage-compare cleanup<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>
 ]]></content>
       <categories>
         <category>学习</category>
