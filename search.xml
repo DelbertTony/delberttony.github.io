@@ -258,7 +258,9 @@ $ openstack domain list：列出已有的域<span aria-hidden="true" class="line
 <li>管理员可以创建新的域，并加入用户</li>
 </ul>
 <pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">$ openstack user create <span class="token operator">&lt;</span>user<span class="token operator">></span> --domain <span class="token operator">&lt;</span>domain<span class="token operator">></span> --password-prompt<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-<p>​	说明：指定域添加新的用户，不指定 --domain 选项时，默认为 Default domain；不建议命令行中指定密码，存在安全风险，建议交互式输入密码。</p>
+<div class="note info"><p><strong>说明</strong></p>
+<p>指定域添加新的用户，不指定 --domain 选项时，默认为 Default domain；不建议命令行中指定密码，存在安全风险，建议交互式输入密码。</p>
+</div>
 <p><strong>组 Group：</strong></p>
 <ul>
 <li>Keystone v3 还引入了组的概念</li>
@@ -707,10 +709,14 @@ $ openstack object delete <span class="token operator">&lt;</span>container_name
 <h3 id="第三节-manila共享文件系统">第三节 manila共享文件系统</h3>
 <p>以管理员用户身份创建共享类型</p>
 <pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">$ manila type-create cephfstype <span class="token boolean">false</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-<p>说明：false 参数为 driver_handles_share_servers 参数的值，若开启动态扩展共享节点，该参数为 true</p>
+<div class="note info"><p><strong>说明</strong></p>
+<p>false 参数为 driver_handles_share_servers 参数的值，若开启动态扩展共享节点，该参数为 true</p>
 <p>以租户用户身份创建共享</p>
+</div>
 <pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">$ manila create --name demo-share --share-type cephfstype cephfs <span class="token number">1</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-<p>说明： --share-type 选项基于后端存储对共享进行分类，并且该共享大小为1GB。 当共享可用时，启动虚拟机实例，单独连接 tenant 网络和存储网络（租户网络与存储网络需要隔离）</p>
+<div class="note info"><p><strong>说明</strong></p>
+<p>–share-type 选项基于后端存储对共享进行分类，并且该共享大小为1GB。 当共享可用时，启动虚拟机实例，单独连接 tenant 网络和存储网络（租户网络与存储网络需要隔离）</p>
+</div>
 <p>在 Ceph Monitor 节点上以 client.manila 用户进行身份认证来创建 cephx 用户，保存该用户的 secret key</p>
 <pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">$ ceph --name<span class="token operator">=</span>client.manila --keyring<span class="token operator">=</span>/etc/ceph/manila.keyring auth get-orcreata client.cloud-user <span class="token operator">></span> cloud-user.keyring
 $ manila access-allow demo-share cephx cloud-user<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
@@ -1334,7 +1340,9 @@ actions: output enqueue set_vlan_vid set_vlan_pcp strip_vlan mod_dl_src mod_dl_d
      state:      <span class="token number">0</span>
      speed: <span class="token number">0</span> Mbps now, <span class="token number">0</span> Mbps max
 OFPT_GET_CONFIG_REPLY <span class="token punctuation">(</span>xid<span class="token operator">=</span>0x4<span class="token punctuation">)</span>: <span class="token assign-left variable">frags</span><span class="token operator">=</span>normal <span class="token assign-left variable">miss_send_len</span><span class="token operator">=</span><span class="token number">0</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-<p><strong>重点说明：带VNI标签的数据包被geneve隧道封装后，走vlan20通讯</strong></p>
+<div class="note info"><h4 id="说明">说明</h4>
+<p>带VNI标签的数据包被geneve隧道封装后，走vlan20通讯</p>
+</div>
 <p><strong>查看geneve流量在租户网络vlan20（172.24.2.0/24）中传输</strong></p>
 <pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server list
 +--------------------------------------+------+--------+--------------------
@@ -1440,6 +1448,66 @@ $ ovs-ofctl show <span class="token punctuation">[</span><span class="token oper
 $ ovs-ofctl dump-ports-desc <span class="token operator">&lt;</span>ovs_switch<span class="token operator">></span>：查看OVS网桥的端口列表详情
 $ ovs-ofctl dump-tables <span class="token operator">&lt;</span>ovs_switch<span class="token operator">></span>：查看OVS的OpenFlow流表
 $ ovs-ofctl dump-flows <span class="token operator">&lt;</span>ovs_switch<span class="token operator">></span>：查看OVS的OpenFlow流表<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<h2 id="第七章-管理计算资源">第七章 管理计算资源</h2>
+<h3 id="第一节-描述实例启动流程">第一节 描述实例启动流程</h3>
+<ol>
+<li>通过使用 dashboard 或命令，以 REST API 调用的形式将用户的账户凭据发送到 Keystone。身份验证成功后，生成 token 并返回给用户；</li>
+<li>实例启动请求和 token 作为 REST API 调用发送到 Nova 服务。nova-api 将请求转发给Keystone 服务，其验证 token 并在更新 的 token 标头中返回允许的角色和权限；</li>
+<li>nova-api 为新实例创建数据库条目。其他进程从此条目获取数据，并将当前状态更新至此持久目；</li>
+<li>nova-api 将 rpc.call 发布到消息队列，请求 nova-scheduler 查找可用的计算节点来运行新实例；</li>
+<li>nova-scheduler 订阅新实例请求，从实例数据库条目读取过滤和权重参数，从数据库读取集群计算节点数据， 并使用所选计算节点 ID 更新实例记录。nova-scheduler 将 rpc.call 提交到消息队列，请求 nova-compute 发起实例启动；</li>
+<li>nova-compute 订阅新实例请求，然后发布 rpc.call 使 nova conductor 准备实例启动；</li>
+<li>nova-conductor 订阅新实例请求，读取数据库条目以获取计算节点 ID 以及请求的 RAM、vCPU 和 flavor，再将新实例状态发布至消息队列；</li>
+<li>nova-compute 订阅新实例请求，以检索实例信息。通过使用实例请求中的镜像ID，nova-compute 发送 REST API 调用到 Glance 服务以获取镜像的URL。glance-api 服务将请求转发给 Keystone 服 务，后者再次验证 token 并在更新的token标头中返回允许的角色和权限；</li>
+<li>通过使用镜像 ID，glance-api 从 Glance 数据库检索镜像元数据，再将镜像 URL 返回给 nova-compute。nova-compute 使⽤该 URL 加载镜像；</li>
+<li>nova-compute 发送 REST API 调用到 Neutron 服务，请求为新实例分配和配置网络资源。 neutron-server 将请求转发给 Keystone 服务，后者再次验证 token 并在更新的 token 标头中返回允许的角色和权限；</li>
+<li>neutron-server 作为 CMS（cloud management system）插件读取逻辑网络资源定义并写入到 ovn-nb 数据库。neutron-server 检查现有网络，并为所需端口、连接和网络参数创建新资源；</li>
+<li>ovn-northd 进程读取 ovn-nb 数据库并将逻辑网络配置转换为 ovn-sb 数据库中的逻辑数据路径流 （logical datapath）。其他 物理网络和端口绑定由所选计算节点上的 ovn-controller 填充；</li>
+<li>ovn-controller 从 ovn-sb 数据库中读取配置并更新物理网络和绑定表中的计算节点状态。 ovn-controller 连接到作为 OpenFlow 控制器的 ovs-vswitchd，通过 OVS bridge 上的 OpenFlow 规则，动态配置对网络流量的控制。neutron-server 将从计算节点 libvirt 驱动程序获取的 L2 配置和请求的 DHCP 地址返回到消息队列。nova-compute将此实例网络状态写入到实例数据库条目；</li>
+<li>nova-compute 发送 REST API 调用到 Cinder 服务，请求新实例磁盘。cinder-api 将请求转发给 Keystone 服务，后者再次验证 token 并在更新的 token 标头中返回允许的角色和权限；</li>
+<li>cinder-api 将 rpc.call 发布到命名的消息队列，请求 cinder scheduler 创建请求大小的卷，或查找已存在的卷的元数据；</li>
+<li>cinder-scheduler 订阅新实例请求，创建或查找卷，然后将请求的元数据返回到 nova-scheduler；</li>
+<li>nova-compute 为计算节点驱动程序生成数据，并使⽤ libvirt 执⾏请求在计算节点上创建虚拟机。nova-compute 将卷信息传递给 libvirt；</li>
+<li>cinder-volume 订阅新实例请求，并检索集群映射。然后，libvirt 在新实例上安装卷；</li>
+</ol>
+<h3 id="第二节-介绍红帽超融合架构">第二节 介绍红帽超融合架构</h3>
+<h4 id="练习：在超融合节点发放实例">练习：在超融合节点发放实例</h4>
+<p>初始化环境</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">]</span>$ lab computeresources-hci setup<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<p>创建hci-aggregate主机集合</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack aggregate create hci-aggregate<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<img src="/2022/06/05/RHOSP13%E5%AE%9E%E9%AA%8C%E6%89%8B%E5%86%8C/image-20220727213748914.png" class title="创建主机集合">
+<p>将加入该主机集合</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack aggregate <span class="token function">add</span> <span class="token function">host</span>
+hci-aggregate computehci0.overcloud.example.com<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
+<div class="group-picture"><div class="group-picture-row"><div class="group-picture-column"><img src="/2022/06/05/RHOSP13%E5%AE%9E%E9%AA%8C%E6%89%8B%E5%86%8C/image-20220727213912178.png" class title="加入主机集合"></div></div><div class="group-picture-row"><div class="group-picture-column"><img src="/2022/06/05/RHOSP13%E5%AE%9E%E9%AA%8C%E6%89%8B%E5%86%8C/image_20220727214030.png" class title="加入主机集合"></div></div></div>
+<p>设置主机聚合的元数据computehci=true</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack aggregate <span class="token builtin class-name">set</span> --
+property <span class="token assign-left variable">computehci</span><span class="token operator">=</span>true hci-aggregate
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack aggregate show hci-aggregate<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>
+<div class="group-picture"><div class="group-picture-row"><div class="group-picture-column"><img src="/2022/06/05/RHOSP13%E5%AE%9E%E9%AA%8C%E6%89%8B%E5%86%8C/image-20220727214131341.png" class title="设置元数据"></div></div><div class="group-picture-row"><div class="group-picture-column"><img src="/2022/06/05/RHOSP13%E5%AE%9E%E9%AA%8C%E6%89%8B%E5%86%8C/image-20220727214307558.png" class title="设置元数据"></div></div></div>
+<p>创建flavor</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack flavor create --ram
+<span class="token number">1024</span> --disk <span class="token number">10</span> --vcpus <span class="token number">2</span> --public default-hci<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
+<p>在flavor的元数据中添加相同的标签computehci=‘true’</p>
+<div class="note info"><p><strong>说明</strong></p>
+<p>“主机聚合”需要配合flavor一起使用，同时在flavor中也需要配置相关&quot;标签”，这样通过flavor创建的虚拟机才会选择相关“主机聚合”中的主机</p>
+</div>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack flavor <span class="token builtin class-name">set</span> default-hci
+--property <span class="token assign-left variable">computehci</span><span class="token operator">=</span><span class="token string">'true'</span>
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack flavor show default-hci<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>
+<img src="/2022/06/05/RHOSP13%E5%AE%9E%E9%AA%8C%E6%89%8B%E5%86%8C/image-20220727215432174.png" class title="查看flavor">
+<p>查看镜像</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack image list<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<img src="/2022/06/05/RHOSP13%E5%AE%9E%E9%AA%8C%E6%89%8B%E5%86%8C/image-20220727215457262.png" class title="查看镜像">
+<p>创建云主机</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server create --flavor
+default-hci --image hci-image --nic net-id<span class="token operator">=</span>finance-network1 --wait hci-server1
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server show hci-server1<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>
+<img src="/2022/06/05/RHOSP13%E5%AE%9E%E9%AA%8C%E6%89%8B%E5%86%8C/image-20220727215524866.png" class title="查看云主机">
+<p>以上说明，该实例被调度创建在了超融合节点上</p>
+<p>清除环境</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ lab computeresources-hci cleanup<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
 ]]></content>
       <categories>
         <category>学习</category>
