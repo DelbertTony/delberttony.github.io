@@ -1523,6 +1523,108 @@ $ ovs-ofctl dump-flows <span class="token operator">&lt;</span>ovs_switch<span c
 <pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server migrate finance-server1 --live compute1.overcloud.example.com
 <span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server list --host compute1.overcloud.example.com<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
 <img src="/2022/06/05/RHOSP13%E5%AE%9E%E9%AA%8C%E6%89%8B%E5%86%8C/image-20220731210415694.png" class title="查看节点实例">
+<p>边迁移边测试</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ <span class="token function">ping</span> <span class="token number">172.25</span>.250.106 PING <span class="token number">172.25</span>.250.106 <span class="token punctuation">(</span><span class="token number">172.25</span>.250.106<span class="token punctuation">)</span> <span class="token number">56</span><span class="token punctuation">(</span><span class="token number">84</span><span class="token punctuation">)</span> bytes of data.
+<span class="token number">64</span> bytes from <span class="token number">172.25</span>.250.106: <span class="token assign-left variable">icmp_seq</span><span class="token operator">=</span><span class="token number">1</span> <span class="token assign-left variable">ttl</span><span class="token operator">=</span><span class="token number">63</span> <span class="token assign-left variable">time</span><span class="token operator">=</span><span class="token number">1.58</span> ms
+<span class="token number">64</span> bytes from <span class="token number">172.25</span>.250.106: <span class="token assign-left variable">icmp_seq</span><span class="token operator">=</span><span class="token number">2</span> <span class="token assign-left variable">ttl</span><span class="token operator">=</span><span class="token number">63</span> <span class="token assign-left variable">time</span><span class="token operator">=</span><span class="token number">0.716</span> ms
+<span class="token number">64</span> bytes from <span class="token number">172.25</span>.250.106: <span class="token assign-left variable">icmp_seq</span><span class="token operator">=</span><span class="token number">3</span> <span class="token assign-left variable">ttl</span><span class="token operator">=</span><span class="token number">63</span> <span class="token assign-left variable">time</span><span class="token operator">=</span><span class="token number">0.526</span> ms
+<span class="token number">64</span> bytes from <span class="token number">172.25</span>.250.106: <span class="token assign-left variable">icmp_seq</span><span class="token operator">=</span><span class="token number">35</span> <span class="token assign-left variable">ttl</span><span class="token operator">=</span><span class="token number">63</span> <span class="token assign-left variable">time</span><span class="token operator">=</span><span class="token number">5.88</span> ms
+<span class="token number">64</span> bytes from <span class="token number">172.25</span>.250.106: <span class="token assign-left variable">icmp_seq</span><span class="token operator">=</span><span class="token number">40</span> <span class="token assign-left variable">ttl</span><span class="token operator">=</span><span class="token number">63</span> <span class="token assign-left variable">time</span><span class="token operator">=</span><span class="token number">1.16</span> ms
+<span class="token comment">#可以看到在短暂时间内延迟稍微大一点</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>将计算节点compute0的nova-compute服务关闭</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack compute <span class="token function">service</span> <span class="token builtin class-name">set</span> compute0.overcloud.example.com nova-compute --disable<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<img src="/2022/06/05/RHOSP13%E5%AE%9E%E9%AA%8C%E6%89%8B%E5%86%8C/image-20220806220736962.png" class title="查看服务状态">
+<p>将计算节点compute0上面的所有实例迁移到其他节点</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ nova host-evacuate-live compute0<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<img src="/2022/06/05/RHOSP13%E5%AE%9E%E9%AA%8C%E6%89%8B%E5%86%8C/image-20220806220906363.png" class title="迁移节点实例">
+<p>重新开启compute0上的nova-compute服务</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack compute <span class="token function">service</span> <span class="token builtin class-name">set</span> compute0.overcloud.example.com nova-compute --enable
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack compute <span class="token function">service</span> list<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
+<img src="/2022/06/05/RHOSP13%E5%AE%9E%E9%AA%8C%E6%89%8B%E5%86%8C/image-20220806221024829.png" class title="查看服务状态">
+<p>再次将compute1上面的实例迁移至其他计算节点</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ nova host-evacuate-live compute1
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>architect1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack server list --host compute0.overcloud.example.com<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
+<img src="/2022/06/05/RHOSP13%E5%AE%9E%E9%AA%8C%E6%89%8B%E5%86%8C/image-20220806221249981.png" class title="查看节点实例">
+<p>清空环境</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">]</span>$ lab computeresources-migrate cleanup<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<h2 id="第八章-自动化云应用">第八章 自动化云应用</h2>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token comment">#列出所有支持的模板</span>
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack orchestration template version list
++--------------------------------------+------+------------------------------+
+<span class="token operator">|</span> Version                              <span class="token operator">|</span> Type <span class="token operator">|</span> Aliases                      <span class="token operator">|</span>
++--------------------------------------+------+------------------------------+
+<span class="token operator">|</span> AWSTemplateFormatVersion.2010-09-09  <span class="token operator">|</span> cfn  <span class="token operator">|</span>                              <span class="token operator">|</span>
+<span class="token operator">|</span> HeatTemplateFormatVersion.2012-12-12 <span class="token operator">|</span> cfn  <span class="token operator">|</span>                              <span class="token operator">|</span>
+<span class="token operator">|</span> heat_template_version.2013-05-23     <span class="token operator">|</span> hot  <span class="token operator">|</span>                              <span class="token operator">|</span>
+<span class="token operator">|</span> heat_template_version.2014-10-16     <span class="token operator">|</span> hot  <span class="token operator">|</span>                              <span class="token operator">|</span>
+<span class="token operator">|</span> heat_template_version.2015-04-30     <span class="token operator">|</span> hot  <span class="token operator">|</span>                              <span class="token operator">|</span>
+<span class="token operator">|</span> heat_template_version.2015-10-15     <span class="token operator">|</span> hot  <span class="token operator">|</span>                              <span class="token operator">|</span>
+<span class="token operator">|</span> heat_template_version.2016-04-08     <span class="token operator">|</span> hot  <span class="token operator">|</span>                              <span class="token operator">|</span>
+<span class="token operator">|</span> heat_template_version.2016-10-14     <span class="token operator">|</span> hot  <span class="token operator">|</span> heat_template_version.newton <span class="token operator">|</span>
+<span class="token operator">|</span> heat_template_version.2017-02-24     <span class="token operator">|</span> hot  <span class="token operator">|</span> heat_template_version.ocata  <span class="token operator">|</span>
+<span class="token operator">|</span> heat_template_version.2017-09-01     <span class="token operator">|</span> hot  <span class="token operator">|</span> heat_template_version.pike   <span class="token operator">|</span>
+<span class="token operator">|</span> heat_template_version.2018-03-02     <span class="token operator">|</span> hot  <span class="token operator">|</span> heat_template_version.queens <span class="token operator">|</span>
++--------------------------------------+------+------------------------------+
+
+<span class="token comment">#queens对应osp13;newton对应osp10</span>
+
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack orchestration resource <span class="token builtin class-name">type</span> list
++----------------------------------------------+
+<span class="token operator">|</span> Resource Type                                <span class="token operator">|</span>
++----------------------------------------------+
+<span class="token operator">|</span> AWS::AutoScaling::AutoScalingGroup           <span class="token operator">|</span>
+<span class="token operator">|</span> AWS::AutoScaling::LaunchConfiguration        <span class="token operator">|</span>
+<span class="token operator">|</span> AWS::AutoScaling::ScalingPolicy              <span class="token operator">|</span>
+
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack orchestration resource <span class="token builtin class-name">type</span> show OS::Nova::Server<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<h4 id="练习：heat模板编排">练习：heat模板编排</h4>
+<p>初始化环境</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">]</span>$ lab orchestration-heat-templates setup<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<p>编辑模板文件，并创建堆栈</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token comment">#下载模板</span>
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">]</span>$ <span class="token function">wget</span> http://materials.example.com/heat/finance-app1.yaml-final
+
+<span class="token comment">#编辑变量文件</span>
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">]</span>$ <span class="token function">cat</span> environment.yaml
+parameters:
+  web_image_name: <span class="token string">"rhel7-web"</span>
+  db_image_name: <span class="token string">"rhel7-db"</span>
+  web_instance_name: <span class="token string">"fianace-web"</span>
+  db_instance_name: <span class="token string">"fianace-db"</span>
+  instance_flavor: <span class="token string">"default"</span>
+  key_name: <span class="token string">"example-keypair"</span>
+  public_net: <span class="token string">"provider-datacentre"</span>
+  private_net: <span class="token string">"finance-network1"</span>
+  private_subnet: <span class="token string">"finance-subnet1"</span>
+
+<span class="token comment">#试运行</span>
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack stack create --environment environment.yaml --template finance-app1.yaml --dry-run -c description finance-app1
+
+<span class="token comment">#创建堆栈</span>
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack stack create --environment environment.yaml --template finance-app1.yaml --wait finance-app1
+
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack stack output list finance-app1
++----------------+---------------------------------------------------------------------------+
+<span class="token operator">|</span> output_key <span class="token operator">|</span> description
++----------------+---------------------------------------------------------------------------+
+<span class="token operator">|</span> web_private_ip <span class="token operator">|</span> Private IP address of the web server                                      <span class="token operator">|</span>
+<span class="token operator">|</span> web_public_ip  <span class="token operator">|</span> External IP address of the web server                                     <span class="token operator">|</span>
+<span class="token operator">|</span> website_url    <span class="token operator">|</span> This URL is the <span class="token string">"external"</span> URL that can be used to access the web server. <span class="token operator">|</span>
+<span class="token operator">|</span>                <span class="token operator">|</span>                                                                           <span class="token operator">|</span>
+<span class="token operator">|</span> db_private_ip  <span class="token operator">|</span> Private IP address of the DB server                                       <span class="token operator">|</span>
++----------------+---------------------------------------------------------------------------+
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ openstack stack output show finance-app1 website_url
++--------------+---------------------------------------------------------------------------+
+<span class="token operator">|</span> Field        <span class="token operator">|</span> Value                                                                     <span class="token operator">|</span>
++--------------+---------------------------------------------------------------------------+
+<span class="token operator">|</span> description  <span class="token operator">|</span> This URL is the <span class="token string">"external"</span> URL that can be used to access the web server. <span class="token operator">|</span>
+<span class="token operator">|</span>              <span class="token operator">|</span>                                                                           <span class="token operator">|</span>
+<span class="token operator">|</span> output_key   <span class="token operator">|</span> website_url                                                               <span class="token operator">|</span>
+<span class="token operator">|</span> output_value <span class="token operator">|</span> http://172.25.250.105/index.php                                           <span class="token operator">|</span>
++--------------+---------------------------------------------------------------------------+
+<span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">(</span>developer1-finance<span class="token punctuation">)</span><span class="token punctuation">]</span>$ <span class="token function">curl</span> http://172.25.250.105/index.php<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>清除环境</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token punctuation">[</span>student@workstation ~<span class="token punctuation">]</span>$ lab orchestration-heat-templates cleanup<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
 ]]></content>
       <categories>
         <category>学习</category>
