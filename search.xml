@@ -4,7 +4,7 @@
     <title>RHOSP13实验手册</title>
     <url>/2022/06/05/RHOSP13%E5%AE%9E%E9%AA%8C%E6%89%8B%E5%86%8C/</url>
     <content><![CDATA[<h1>第一章 红帽Openstack平台架构</h1>
-<p>第一节 介绍</p>
+<h2 id="第一节-介绍">第一节 介绍</h2>
 <img src="/2022/06/05/RHOSP13%E5%AE%9E%E9%AA%8C%E6%89%8B%E5%86%8C/image-20220606112025776.png" class title="实验环境">
 <span id="more"></span>
 <ul>
